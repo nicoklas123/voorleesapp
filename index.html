@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NicoKlas voorleesapp</title>
+    
+    <!-- Externe bibliotheken voor PDF en DOCX verwerking via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f1f5f9;
+            --container-bg: #ffffff;
+            --text-color: #334155;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --highlight-color: #fff200;
+            --highlight-text: #000000;
+            --border-radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .screen {
+            width: 100%;
+            max-width: 850px;
+            background: var(--container-bg);
+            padding: 35px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 25px;
+            color: #1e293b;
+            text-align: center;
+        }
+
+        /* Input secties */
+        .input-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .upload-zone {
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            cursor: pointer;
+            color: #64748b;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-color);
+            background: #eff6ff;
+            color: var(--accent-hover);
+        }
+
+        .textarea-container {
+            position: relative;
+            width: 100%;
+        }
+
+        textarea {
+            width: 100%;
+            height: 160px;
+            padding: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--border-radius);
+            resize: vertical;
+            font-size: 15px;
+            outline: none;
+            color: #334155 !important;
+            background: #ffffff !important;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Opties paneel */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            background: #f8fafc !important;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-group label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #475569 !important;
+        }
+
+        .option-group select {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff !important;
+            color: #334155 !important;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .option-group select:focus {
+            border-color: var(--accent-color);
+        }
+
+        .option-group input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #cbd5e1;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .option-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .option-group input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+        }
+
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .range-container input {
+            flex: 1;
+        }
+
+        .range-val {
+            min-width: 45px;
+            text-align: right;
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b !important;
+        }
+
+        /* Knoppen */
+        button {
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+            width: 100%;
+            font-size: 16px;
+            padding: 14px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary { background-color: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+        
+        .btn-action { background-color: #10b981; color: white; }
+        .btn-action:hover { background-color: #059669; }
+        
+        .btn-warning { background-color: #f59e0b; color: white; }
+        .btn-warning:hover { background-color: #d97706; }
+        
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
+        
+        .btn-bookmark { background-color: #8b5cf6; color: white; }
+        .btn-bookmark:hover { background-color: #7c3aed; }
+        
+        .btn-clear-file {
+            background-color: #fee2e2;
+            color: #ef4444;
+            padding: 6px 12px;
+            font-size: 13px;
+            align-self: center;
+        }
+        .btn-clear-file:hover { background-color: #fca5a5; }
+
+        /* --- LEESSCHERM --- */
+        #read-screen {
+            max-width: 100%;
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+            box-shadow: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 40px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .reader-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .reader-header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .reader-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .page-navigation {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .page-navigation input {
+            width: 50px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .reader-viewport {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px var(--viewport-padding, 15%);
+            border-radius: var(--border-radius);
+            background: #ffffff;
+            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06);
+        }
+
+        #output-area {
+            outline: none;
+        }
+
+        .line-wrapper {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0px;
+            position: relative;
+        }
+
+        .line-number {
+            width: 40px;
+            min-width: 40px;
+            text-align: right;
+            padding-right: 15px;
+            color: #94a3b8;
+            font-size: 0.8em;
+            user-select: none;
+            display: inline-block;
+            margin-top: 4px;
+            font-weight: normal !important;
+        }
+
+        .line {
+            flex: 1;
+            border-radius: 4px;
+            transition: background-color 0.1s ease;
+        }
+
+        .word {
+            display: inline-block;
+            margin-right: 0.23em;
+            border-radius: 4px;
+            padding: 1px 3px;
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+        }
+
+        .word:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        /* DYNAMISCHE MARKERINGEN */
+        .highlight-word .word.active {
+            background-color: var(--highlight-color) !important;
+            color: var(--highlight-text) !important;
+        }
+
+        .highlight-line .line.active-line {
+            background-color: var(--highlight-color) !important;
+            color: var(--highlight-text) !important;
+        }
+
+        .highlight-line-word .line.active-line {
+            background-color: var(--line-bg-mix, rgba(0, 0, 0, 0.06)) !important;
+        }
+        .highlight-line-word .word.active {
+            background-color: var(--highlight-color) !important;
+            color: var(--highlight-text) !important;
+        }
+        
+        .reader-page {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px dashed #e2e8f0;
+            position: relative;
+        }
+        .reader-page::after {
+            content: "Pagina " attr(data-page-num);
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .reader-page:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        /* POP-UP MODAL */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #ffffff !important;
+            color: #334155 !important;
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.open .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+            border: none;
+            background: none;
+        }
+        .modal-close:hover {
+            color: #1e293b;
+        }
+
+        .footer-license {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<!-- SCHERM 1: STARTSCHERM -->
+<div id="start-screen" class="screen">
+    <h1>NicoKlas voorleesapp</h1>
+    
+    <div class="input-methods">
+        <div class="upload-container">
+            <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-upload').click()">
+                <span id="upload-label">📁 Klik hier om een DOCX- of PDF-bestand te uploaden</span>
+                <input type="file" id="file-upload" accept=".pdf,.docx" style="display: none;">
+            </div>
+            <button class="btn-clear-file hidden" id="clear-file-btn">❌ Wis bestand</button>
+        </div>
+        <div class="textarea-container">
+            <textarea id="text-input" placeholder="Of plak hier direct je tekst om voor te lezen..."></textarea>
+        </div>
+    </div>
+
+    <h2>Instellingen</h2>
+    <div class="options-grid">
+        <div class="option-group">
+            <label>Voorleessnelheid</label>
+            <div class="range-container">
+                <input type="range" class="sync-speed" min="0.1" max="2" step="0.05" value="1.0">
+                <span class="range-val speed-val">1.00x</span>
+            </div>
+        </div>
+
+        <div class="option-group">
+            <label>Voorleesstem</label>
+            <select class="sync-voice">
+                <option value="nl" selected>Nederlands</option>
+                <option value="vl">Vlaams</option>
+                <option value="en">Engels (English)</option>
+                <option value="fr">Frans (Français)</option>
+            </select>
+        </div>
+        
+        <div class="option-group">
+            <label>Grootte lettertype</label>
+            <div class="range-container">
+                <input type="range" class="sync-font" min="16" max="50" step="1" value="22">
+                <span class="range-val font-val">22px</span>
+            </div>
+        </div>
+
+        <div class="option-group">
+            <label>Interlinie afstand</label>
+            <select class="sync-lineheight">
+                <option value="1.4">Compact (1.4)</option>
+                <option value="1.8" selected>Normaal (1.8)</option>
+                <option value="2.2">Ruim (2.2)</option>
+                <option value="2.6">Zeer ruim (2.6)</option>
+            </select>
+        </div>
+
+        <div class="option-group">
+            <label>Lettertype</label>
+            <select class="sync-fontfamily">
+                <option value="Verdana, sans-serif" selected>Verdana</option>
+                <option value="Verdana-Bold">Verdana Bold</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="Arial-Bold">Arial Bold</option>
+            </select>
+        </div>
+
+        <div class="option-group">
+            <label>Markering</label>
+            <select class="sync-marktype">
+                <option value="word" selected>Per woord</option>
+                <option value="line">Per regel</option>
+                <option value="line-word">Regel én woord</option>
+                <option value="none">Geen markering</option>
+            </select>
+        </div>
+
+        <div class="option-group">
+            <label>Kleur markering</label>
+            <select class="sync-markcolor">
+                <option value="yellow" selected>Geel</option>
+                <option value="orange">Oranje</option>
+                <option value="bw">Zwart-wit (Invers)</option>
+            </select>
+        </div>
+    </div>
+
+    <button class="btn-primary" id="go-to-reader-btn">Naar voorleesscherm ➔</button>
+
+    <div class="footer-license">
+        CC BY-NC-SA 4.0 NicoKlas
+    </div>
+</div>
+
+
+<!-- SCHERM 2: LEESSCHERM -->
+<div id="read-screen" class="screen hidden">
+    <div class="reader-header">
+        <div class="reader-controls">
+            <button class="btn-action" id="play-btn">▶ Starten van begin</button>
+            <button class="btn-action" id="play-cursor-btn">🎯 Starten vanaf cursor</button>
+            <button class="btn-bookmark hidden" id="resume-bookmark-btn">🔖 Hervat vorige sessie</button>
+            <button class="btn-warning hidden" id="pause-btn">⏸ Pauze</button>
+            <button class="btn-danger" id="stop-btn">⏱ Stop</button>
+            
+            <div class="page-navigation id-page-nav hidden" id="page-nav-container">
+                <span>Pagina:</span>
+                <input type="number" id="page-input" min="1" value="1">
+                <span id="total-pages-label">/ 1</span>
+                <button class="btn-secondary" id="go-to-page-btn" style="padding: 4px 10px; font-size: 13px;">Ga</button>
+            </div>
+        </div>
+        
+        <div class="reader-header-right">
+            <button class="btn-secondary" id="open-settings-btn" style="padding: 10px 15px;">⚙️ Instellingen</button>
+            <button class="btn-secondary" id="back-to-start-btn">✖ Terug naar start</button>
+        </div>
+    </div>
+
+    <div class="reader-viewport" id="reader-viewport">
+        <div id="output-area"></div>
+    </div>
+</div>
+
+
+<!-- POP-UP LIVE INSTELLINGEN -->
+<div class="modal-overlay" id="settings-modal">
+    <div class="modal-content">
+        <button class="modal-close" id="close-settings-btn">&times;</button>
+        <h3>⚙️ Wijzig Opties Live</h3>
+        
+        <div class="options-grid" style="margin-bottom: 0;">
+            <div class="option-group">
+                <label>Voorleessnelheid</label>
+                <div class="range-container">
+                    <input type="range" class="sync-speed" min="0.1" max="2" step="0.05" value="1.0">
+                    <span class="range-val speed-val">1.00x</span>
+                </div>
+            </div>
+
+            <div class="option-group">
+                <label>Voorleesstem</label>
+                <select class="sync-voice">
+                    <option value="nl">Nederlands</option>
+                    <option value="vl">Vlaams</option>
+                    <option value="en">Engels (English)</option>
+                    <option value="fr">Frans (Français)</option>
+                </select>
+            </div>
+            
+            <div class="option-group">
+                <label>Grootte lettertype</label>
+                <div class="range-container">
+                    <input type="range" class="sync-font" min="16" max="50" step="1" value="22">
+                    <span class="range-val font-val">22px</span>
+                </div>
+            </div>
+
+            <div class="option-group">
+                <label>Interlinie afstand</label>
+                <select class="sync-lineheight">
+                    <option value="1.4">Compact (1.4)</option>
+                    <option value="1.8" selected>Normaal (1.8)</option>
+                    <option value="2.2">Ruim (2.2)</option>
+                    <option value="2.6">Zeer ruim (2.6)</option>
+                </select>
+            </div>
+
+            <div class="option-group">
+                <label>Lettertype</label>
+                <select class="sync-fontfamily">
+                    <option value="Verdana, sans-serif" selected>Verdana</option>
+                    <option value="Verdana-Bold">Verdana Bold</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Arial-Bold">Arial Bold</option>
+                </select>
+            </div>
+
+            <div class="option-group">
+                <label>Markering</label>
+                <select class="sync-marktype">
+                    <option value="word" selected>Per woord</option>
+                    <option value="line">Per regel</option>
+                    <option value="line-word">Regel én woord</option>
+                    <option value="none">Geen markering</option>
+                </select>
+            </div>
+
+            <div class="option-group">
+                <label>Kleur markering</label>
+                <select class="sync-markcolor">
+                    <option value="yellow" selected>Geel</option>
+                    <option value="orange">Oranje</option>
+                    <option value="bw">Zwart-wit (Invers)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+    // DOM elementen
+    const startScreen = document.getElementById('start-screen');
+    const readScreen = document.getElementById('read-screen');
+    const fileUpload = document.getElementById('file-upload');
+    const uploadLabel = document.getElementById('upload-label');
+    const clearFileBtn = document.getElementById('clear-file-btn');
+    const textInput = document.getElementById('text-input');
+    const goToReaderBtn = document.getElementById('go-to-reader-btn');
+
+    const settingsModal = document.getElementById('settings-modal');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    
+    const speedInputs = document.querySelectorAll('.sync-speed');
+    const speedVals = document.querySelectorAll('.speed-val');
+    const voiceSelects = document.querySelectorAll('.sync-voice');
+    const fontInputs = document.querySelectorAll('.sync-font');
+    const fontVals = document.querySelectorAll('.font-val');
+    const lineHeightSelects = document.querySelectorAll('.sync-lineheight');
+    const fontFamilySelects = document.querySelectorAll('.sync-fontfamily');
+    const markTypeSelects = document.querySelectorAll('.sync-marktype');
+    const markColorSelects = document.querySelectorAll('.sync-markcolor');
+
+    const outputArea = document.getElementById('output-area');
+    const readerViewport = document.getElementById('reader-viewport');
+    const playBtn = document.getElementById('play-btn');
+    const playCursorBtn = document.getElementById('play-cursor-btn');
+    const resumeBookmarkBtn = document.getElementById('resume-bookmark-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const backToStartBtn = document.getElementById('back-to-start-btn');
+    const pageNavContainer = document.getElementById('page-nav-container');
+    const pageInput = document.getElementById('page-input');
+    const totalPagesLabel = document.getElementById('total-pages-label');
+    const goToPageBtn = document.getElementById('go-to-page-btn');
+
+    let synth = window.speechSynthesis;
+    let utterance = null;
+    let wordsArray = [];
+    let androidInterval = null;
+    let customPlaybackTimeout = null; 
+    let selectedWordIndex = 0;
+    let currentReadingIndex = 0; 
+    let pagesData = [];
+    let systemVoices = [];
+    let isPaused = false;
+    let isCurrentlyPlaying = false; 
+    let currentTextKey = ""; 
+
+    function loadVoices() {
+        systemVoices = synth.getVoices();
+    }
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // BI-DIRECTIONELE SYNCHRONISATIE
+    function setupSyncedInputs(elements, callback, valElements = null, suffix = '') {
+        elements.forEach(elem => {
+            elem.addEventListener('input', (e) => {
+                const val = e.target.value;
+                elements.forEach(el => el.value = val);
+                if (valElements) {
+                    valElements.forEach(vEl => vEl.textContent = (suffix === 'x' ? parseFloat(val).toFixed(2) : val) + suffix);
+                }
+                callback(val);
+            });
+        });
+    }
+
+    setupSyncedInputs(speedInputs, () => handleLiveVoicePropertyChange(), speedVals, 'x');
+    setupSyncedInputs(voiceSelects, () => handleLiveVoicePropertyChange());
+    setupSyncedInputs(fontInputs, () => applyStyleOptions(), fontVals, 'px');
+    setupSyncedInputs(lineHeightSelects, () => applyStyleOptions());
+    setupSyncedInputs(fontFamilySelects, () => applyStyleOptions());
+    setupSyncedInputs(markTypeSelects, () => applyStyleOptions());
+    setupSyncedInputs(markColorSelects, () => applyStyleOptions());
+
+    function handleLiveVoicePropertyChange() {
+        if (isCurrentlyPlaying && !isPaused) {
+            startSpeechPlayback(currentReadingIndex);
+        }
+    }
+
+    openSettingsBtn.addEventListener('click', () => settingsModal.classList.add('open'));
+    closeSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('open'));
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) settingsModal.classList.remove('open');
+    });
+
+    // BESTANDSUPLOAD
+    fileUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        uploadLabel.textContent = `⏳ Bestand inladen: ${file.name}...`;
+        clearFileBtn.classList.remove('hidden');
+        pagesData = [];
+
+        const reader = new FileReader();
+
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+            reader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+                pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                    let totalPages = pdf.numPages;
+                    let countPromises = [];
+                    
+                    for (let i = 1; i <= totalPages; i++) {
+                        countPromises.push(pdf.getPage(i).then(page => {
+                            return page.getTextContent().then(textContent => {
+                                return textContent.items.map(item => item.str).join(' ');
+                            });
+                        }));
+                    }
+                    
+                    Promise.all(countPromises).then(pagesText => {
+                        pagesData = pagesText;
+                        textInput.value = pagesData.join('\n\n');
+                        uploadLabel.textContent = `📁 ${file.name} (${totalPages} pagina's geladen)`;
+                    });
+                }).catch(err => {
+                    alert("Fout bij verwerken PDF: " + err.message);
+                    resetFileUpload();
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        } 
+        else if (file.name.toLowerCase().endsWith('.docx')) {
+            reader.onload = function(event) {
+                const arrayBuffer = event.target.result;
+                mammoth.extractRawText({arrayBuffer: arrayBuffer})
+                    .then(function(result) {
+                        textInput.value = result.value;
+                        const cleanText = result.value.trim();
+                        if(cleanText.length > 3000) {
+                            pagesData = cleanText.match(/[\s\S]{1,2500}/g) || [cleanText];
+                        } else {
+                            pagesData = [cleanText];
+                        }
+                        uploadLabel.textContent = `📁 ${file.name} geladen.`;
+                    })
+                    .catch(function(err) {
+                        alert("Fout bij laden van Word-bestand: " + err);
+                        resetFileUpload();
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    });
+
+    function resetFileUpload() {
+        fileUpload.value = "";
+        pagesData = [];
+        textInput.value = "";
+        uploadLabel.textContent = "📁 Klik hier om een DOCX- of PDF-bestand te uploaden";
+        clearFileBtn.classList.add('hidden');
+    }
+
+    clearFileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetFileUpload();
+    });
+
+    // STYLING APPLICATIE
+    function applyStyleOptions() {
+        const selectedFont = fontFamilySelects[0].value;
+        if (selectedFont === 'Arial-Bold') {
+            outputArea.style.fontFamily = 'Arial, sans-serif';
+            outputArea.style.fontWeight = 'bold';
+        } else if (selectedFont === 'Verdana-Bold') {
+            outputArea.style.fontFamily = 'Verdana, sans-serif';
+            outputArea.style.fontWeight = 'bold';
+        } else {
+            outputArea.style.fontFamily = selectedFont;
+            outputArea.style.fontWeight = 'normal';
+        }
+
+        outputArea.style.fontSize = fontInputs[0].value + 'px';
+        outputArea.style.lineHeight = lineHeightSelects[0].value;
+
+        readScreen.classList.remove('highlight-word', 'highlight-line', 'highlight-line-word');
+        
+        document.documentElement.style.setProperty('--bg-color', '#f1f5f9');
+        document.documentElement.style.setProperty('--container-bg', '#ffffff');
+        document.documentElement.style.setProperty('--text-color', '#334155');
+
+        readerViewport.style.background = '#ffffff';
+        readerViewport.style.color = '#334155';
+        readScreen.style.background = '#ffffff';
+        readScreen.style.color = '#334155';
+
+        const markType = markTypeSelects[0].value;
+        if (markType === 'word') {
+            readScreen.classList.add('highlight-word');
+        } else if (markType === 'line') {
+            readScreen.classList.add('highlight-line');
+        } else if (markType === 'line-word') {
+            readScreen.classList.add('highlight-line-word');
+        }
+
+        const markColor = markColorSelects[0].value;
+        if (markColor === 'yellow') {
+            document.documentElement.style.setProperty('--highlight-color', '#fff200');
+            document.documentElement.style.setProperty('--highlight-text', '#000000');
+            document.documentElement.style.setProperty('--line-bg-mix', 'rgba(0, 0, 0, 0.08)');
+        } else if (markColor === 'orange') {
+            document.documentElement.style.setProperty('--highlight-color', '#ff9f43');
+            document.documentElement.style.setProperty('--highlight-text', '#000000');
+            document.documentElement.style.setProperty('--line-bg-mix', 'rgba(0, 0, 0, 0.08)');
+        } else if (markColor === 'bw') {
+            readerViewport.style.background = '#0f172a';
+            readerViewport.style.color = '#f8fafc';
+            readScreen.style.background = '#0f172a';
+            readScreen.style.color = '#f8fafc';
+            
+            document.documentElement.style.setProperty('--highlight-color', '#ffffff');
+            document.documentElement.style.setProperty('--highlight-text', '#000000');
+            document.documentElement.style.setProperty('--line-bg-mix', 'rgba(255, 255, 255, 0.15)');
+        }
+        
+        if (parseInt(fontInputs[0].value) > 32) {
+            document.documentElement.style.setProperty('--viewport-padding', '5%');
+        } else {
+            document.documentElement.style.setProperty('--viewport-padding', '15%');
+        }
+    }
+
+    function generateTextKey(text) {
+        let clean = text.substring(0, 100).replace(/[^a-zA-Z0-9]/g, "");
+        return "voorlees_bookmark_" + (clean || "default");
+    }
+
+    function saveBookmarkPosition(index) {
+        if (currentTextKey) {
+            localStorage.setItem(currentTextKey, index);
+        }
+    }
+
+    function checkAndShowBookmark() {
+        const savedIndex = localStorage.getItem(currentTextKey);
+        if (savedIndex && parseInt(savedIndex) > 0 && parseInt(savedIndex) < wordsArray.length) {
+            resumeBookmarkBtn.classList.remove('hidden');
+        } else {
+            resumeBookmarkBtn.classList.add('hidden');
+        }
+    }
+
+    resumeBookmarkBtn.addEventListener('click', () => {
+        const savedIndex = parseInt(localStorage.getItem(currentTextKey));
+        if (!isNaN(savedIndex) && wordsArray[savedIndex]) {
+            selectedWordIndex = savedIndex;
+            currentReadingIndex = savedIndex;
+            
+            wordsArray.forEach(w => w.style.borderBottom = 'none');
+            wordsArray[savedIndex].style.borderBottom = '3px solid var(--accent-color)';
+            
+            highlightWordAndSync(savedIndex);
+            startSpeechPlayback(savedIndex);
+            resumeBookmarkBtn.classList.add('hidden');
+        }
+    });
+
+    // INTERACTIEVE TEKST OPBOUW
+    function buildInteractiveText() {
+        outputArea.innerHTML = '';
+        const rawText = textInput.value.trim();
+        const combinedPagesText = pagesData.join('\n\n').trim();
+        
+        if (pagesData.length === 0 || rawText !== combinedPagesText) {
+            pagesData = rawText ? [rawText] : ["Geen tekst ingevoerd."];
+            if(fileUpload.value) {
+                uploadLabel.textContent = "📁 Tekst handmatig aangepast";
+                clearFileBtn.classList.add('hidden');
+                fileUpload.value = "";
+            }
+        }
+
+        currentTextKey = generateTextKey(rawText || pagesData[0]);
+
+        if (pagesData.length > 1) {
+            pageNavContainer.classList.remove('hidden');
+            pageInput.max = pagesData.length;
+            totalPagesLabel.textContent = `/ ${pagesData.length}`;
+        } else {
+            pageNavContainer.classList.add('hidden');
+        }
+
+        let globalLineCounter = 1;
+
+        pagesData.forEach((pageText, pageIdx) => {
+            const pageDiv = document.createElement('div');
+            pageDiv.classList.add('reader-page');
+            pageDiv.dataset.pageNum = pageIdx + 1;
+            pageDiv.id = `reader-page-${pageIdx + 1}`;
+
+            const lines = pageText.split('\n');
+            lines.forEach((line) => {
+                if (line.trim() === '') {
+                    pageDiv.appendChild(document.createElement('br'));
+                    return;
+                }
+
+                const lineWrapper = document.createElement('div');
+                lineWrapper.classList.add('line-wrapper');
+
+                const numSpan = document.createElement('span');
+                numSpan.classList.add('line-number');
+                if (globalLineCounter % 5 === 0) {
+                    numSpan.textContent = globalLineCounter;
+                } else {
+                    numSpan.innerHTML = '&nbsp;';
+                }
+                lineWrapper.appendChild(numSpan);
+
+                const lineSpan = document.createElement('span');
+                lineSpan.classList.add('line');
+
+                const words = line.split(' ');
+                words.forEach(word => {
+                    if (word.length > 0) {
+                        const wordSpan = document.createElement('span');
+                        wordSpan.classList.add('word');
+                        wordSpan.textContent = word;
+                        lineSpan.appendChild(wordSpan);
+                    }
+                });
+
+                lineWrapper.appendChild(lineSpan);
+                pageDiv.appendChild(lineWrapper);
+                globalLineCounter++;
+            });
+
+            outputArea.appendChild(pageDiv);
+        });
+
+        wordsArray = Array.from(outputArea.querySelectorAll('.word'));
+
+        wordsArray.forEach((wordSpan, index) => {
+            wordSpan.addEventListener('click', () => {
+                wordsArray.forEach(w => w.style.borderBottom = 'none');
+                wordSpan.style.borderBottom = '3px solid var(--accent-color)';
+                selectedWordIndex = index;
+                currentReadingIndex = index; 
+                saveBookmarkPosition(index); 
+                if (isCurrentlyPlaying && !isPaused) {
+                    startSpeechPlayback(index);
+                }
+            });
+        });
+    }
+
+    goToReaderBtn.addEventListener('click', () => {
+        const text = textInput.value.trim();
+        if (!text && pagesData.length === 0) {
+            alert('Voer eerst een tekst in of upload een PDF/DOCX-bestand!');
+            return;
+        }
+        
+        applyStyleOptions();
+        buildInteractiveText();
+        
+        startScreen.classList.add('hidden');
+        readScreen.classList.remove('hidden');
+        selectedWordIndex = 0;
+        currentReadingIndex = 0;
+        resetPauseButtonState();
+        checkAndShowBookmark(); 
+    });
+
+    backToStartBtn.addEventListener('click', () => {
+        stopReading();
+        settingsModal.classList.remove('open');
+        readScreen.classList.add('hidden');
+        startScreen.classList.remove('hidden');
+        document.documentElement.style.setProperty('--bg-color', '#f1f5f9');
+    });
+
+    function scrollToPage(pageNum) {
+        const targetPage = document.getElementById(`reader-page-${pageNum}`);
+        if (targetPage) {
+            targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const firstWordOnPage = targetPage.querySelector('.word');
+            if (firstWordOnPage) {
+                selectedWordIndex = wordsArray.indexOf(firstWordOnPage);
+                currentReadingIndex = selectedWordIndex;
+                saveBookmarkPosition(currentReadingIndex);
+                wordsArray.forEach(w => w.style.borderBottom = 'none');
+                firstWordOnPage.style.borderBottom = '3px solid var(--accent-color)';
+                if (isCurrentlyPlaying && !isPaused) {
+                    startSpeechPlayback(currentReadingIndex);
+                }
+            }
+        }
+    }
+
+    goToPageBtn.addEventListener('click', () => {
+        const pageNum = parseInt(pageInput.value);
+        if (pageNum >= 1 && pageNum <= pagesData.length) {
+            scrollToPage(pageNum);
+        }
+    });
+
+    function highlightWordAndSync(index) {
+        if (index >= wordsArray.length || index < 0) return;
+
+        wordsArray.forEach(w => w.classList.remove('active'));
+        document.querySelectorAll('.line').forEach(l => l.classList.remove('active-line'));
+
+        const activeWordSpan = wordsArray[index];
+        if (activeWordSpan) {
+            activeWordSpan.classList.add('active');
+            
+            const parentLine = activeWordSpan.closest('.line');
+            if (parentLine) {
+                parentLine.classList.add('active-line');
+            }
+
+            const parentPage = activeWordSpan.closest('.reader-page');
+            if (parentPage) {
+                pageInput.value = parentPage.dataset.pageNum;
+            }
+
+            activeWordSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    // CONTROL LOGICA
+    function stopReading() {
+        clearInterval(androidInterval);
+        clearTimeout(customPlaybackTimeout);
+        if (synth.speaking) {
+            synth.cancel();
+        }
+        isCurrentlyPlaying = false;
+        wordsArray.forEach(w => {
+            w.classList.remove('active');
+            w.style.borderBottom = 'none';
+        });
+        document.querySelectorAll('.line').forEach(l => l.classList.remove('active-line'));
+        resetPauseButtonState();
+    }
+
+    function pauseReading() {
+        clearInterval(androidInterval);
+        clearTimeout(customPlaybackTimeout);
+        if (synth.speaking) {
+            synth.cancel(); 
+        }
+        isPaused = true;
+        saveBookmarkPosition(currentReadingIndex); 
+        pauseBtn.textContent = "▶ Hervatten";
+        pauseBtn.classList.remove('btn-warning');
+        pauseBtn.classList.add('btn-action');
+    }
+
+    function resetPauseButtonState() {
+        isPaused = false;
+        pauseBtn.classList.add('hidden');
+        pauseBtn.textContent = "⏸ Pauze";
+        pauseBtn.classList.remove('btn-action');
+        pauseBtn.classList.add('btn-warning');
+    }
+
+    pauseBtn.addEventListener('click', () => {
+        if (!isPaused) {
+            pauseReading();
+        } else {
+            startSpeechPlayback(currentReadingIndex);
+        }
+    });
+
+    // STEM MATCHER OP BASIS VAN TAALCODES
+    function getSelectedVoice(targetLang) {
+        loadVoices();
+        let langCode = 'nl-NL';
+        if (targetLang === 'vl') langCode = 'nl-BE';
+        else if (targetLang === 'en') langCode = 'en-';
+        else if (targetLang === 'fr') langCode = 'fr-';
+        
+        let matches = systemVoices.filter(v => v.lang.toLowerCase().replace('_', '-').includes(langCode.toLowerCase()));
+        
+        if (matches.length === 0 && (targetLang === 'nl' || targetLang === 'vl')) {
+            matches = systemVoices.filter(v => v.lang.toLowerCase().includes('nl'));
+        }
+        
+        return matches.length > 0 ? matches[0] : null;
+    }
+
+    function startSpeechPlayback(startIndex) {
+        clearInterval(androidInterval);
+        clearTimeout(customPlaybackTimeout);
+        if (synth.speaking) {
+            synth.cancel();
+        }
+        
+        if (startIndex >= wordsArray.length) {
+            stopReading();
+            return;
+        }
+
+        resumeBookmarkBtn.classList.add('hidden');
+        pauseBtn.classList.remove('hidden');
+        isPaused = false;
+        isCurrentlyPlaying = true;
+        pauseBtn.textContent = "⏸ Pauze";
+        pauseBtn.classList.remove('btn-action');
+        pauseBtn.classList.add('btn-warning');
+
+        currentReadingIndex = startIndex;
+        const speed = parseFloat(speedInputs[0].value);
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const targetLang = voiceSelects[0].value;
+
+        if (speed < 1.0 && !isAndroid) {
+            
+            function readNextWordCustom() {
+                if (currentReadingIndex >= wordsArray.length || isPaused) {
+                    if (currentReadingIndex >= wordsArray.length) stopReading();
+                    return;
+                }
+
+                highlightWordAndSync(currentReadingIndex);
+                saveBookmarkPosition(currentReadingIndex);
+
+                const currentWordText = wordsArray[currentReadingIndex].textContent;
+                utterance = new SpeechSynthesisUtterance(currentWordText);
+                
+                const chosenVoice = getSelectedVoice(targetLang);
+                if (chosenVoice) {
+                    utterance.voice = chosenVoice;
+                    utterance.lang = chosenVoice.lang;
+                } else {
+                    utterance.lang = targetLang === 'vl' ? 'nl-BE' : (targetLang === 'en' ? 'en-US' : (targetLang === 'fr' ? 'fr-FR' : 'nl-NL'));
+                }
+
+                utterance.rate = speed; 
+
+                let difference = 1.0 - speed; 
+                let baseDelay = difference * 200; 
+                let speedFactor = difference * 350; 
+                let totalDelay = baseDelay + speedFactor;
+
+                if (/[.,!?]/.test(currentWordText)) {
+                    totalDelay += (difference * 500);
+                }
+
+                customPlaybackTimeout = setTimeout(() => {
+                    if (isPaused) return;
+
+                    utterance.onend = () => {
+                        currentReadingIndex++;
+                        readNextWordCustom();
+                    };
+
+                    utterance.onerror = () => stopReading();
+                    synth.speak(utterance);
+
+                }, totalDelay);
+            }
+
+            readNextWordCustom();
+
+        } else {
+            const textToRead = wordsArray.slice(startIndex).map(w => w.textContent).join(' ');
+            utterance = new SpeechSynthesisUtterance(textToRead);
+            
+            const chosenVoice = getSelectedVoice(targetLang);
+            if (chosenVoice) {
+                utterance.voice = chosenVoice;
+                utterance.lang = chosenVoice.lang;
+            } else {
+                utterance.lang = targetLang === 'vl' ? 'nl-BE' : (targetLang === 'en' ? 'en-US' : (targetLang === 'fr' ? 'fr-FR' : 'nl-NL'));
+            }
+            
+            utterance.rate = speed;
+
+            if (isAndroid) {
+                highlightWordAndSync(currentReadingIndex);
+                const wordsPerMinute = 150 * speed;
+                const msPerWord = (60 * 1000) / wordsPerMinute;
+
+                androidInterval = setInterval(() => {
+                    currentReadingIndex++;
+                    if (currentReadingIndex < wordsArray.length) {
+                        highlightWordAndSync(currentReadingIndex);
+                        saveBookmarkPosition(currentReadingIndex);
+                    } else {
+                        stopReading();
+                    }
+                }, msPerWord);
+
+            } else {
+                utterance.onboundary = (event) => {
+                    if (event.name === 'word') {
+                        const charIndex = event.charIndex;
+                        const subText = textToRead.substring(0, charIndex).trim();
+                        let wordsBefore = subText === "" ? 0 : subText.split(/\s+/).length;
+                        
+                        currentReadingIndex = startIndex + wordsBefore;
+
+                        if (currentReadingIndex >= wordsArray.length) {
+                            currentReadingIndex = wordsArray.length - 1;
+                        }
+                        highlightWordAndSync(currentReadingIndex);
+                        saveBookmarkPosition(currentReadingIndex);
+                    }
+                };
+            }
+
+            utterance.onend = () => {
+                if (!isPaused) {
+                    localStorage.removeItem(currentTextKey);
+                    stopReading();
+                }
+            };
+            utterance.onerror = () => {
+                if (!isPaused) {
+                    stopReading();
+                }
+            };
+
+            synth.speak(utterance);
+        }
+    }
+
+    playBtn.addEventListener('click', () => startSpeechPlayback(0));
+    playCursorBtn.addEventListener('click', () => startSpeechPlayback(selectedWordIndex));
+    stopBtn.addEventListener('click', () => {
+        stopReading();
+        saveBookmarkPosition(0);
+    });
+</script>
+
+</body>
+</html>
