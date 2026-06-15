@@ -434,15 +434,15 @@
             <div class="option-group">
                 <label>Voorleessnelheid</label>
                 <div class="range-container">
-                    <input type="range" class="sync-speed" min="0.1" max="2" step="0.05" value="1.0">
+                    <input type="range" class="sync-speed" min="0.1" max="1.5" step="0.05" value="1.0">
                     <span class="range-val speed-val">1.00x</span>
                 </div>
             </div>
             <div class="option-group">
                 <label>Voorleesstem</label>
                 <select class="sync-voice">
-                    <option value="nl" selected>Nederlands</option>
-                    <option value="vl">Vlaams</option>
+                    <option value="vl" selected>Vlaams</option>
+                    <option value="nl">Nederlands</option>
                     <option value="en">Engels (English)</option>
                     <option value="fr">Frans (Français)</option>
                     <option value="none">Geen (Stil lezen)</option>
@@ -451,7 +451,7 @@
             <div class="option-group">
                 <label>Grootte lettertype</label>
                 <div class="range-container">
-                    <input type="range" class="sync-font" min="16" max="50" step="1" value="22">
+                    <input type="range" class="sync-font" min="16" max="80" step="1" value="22">
                     <span class="range-val font-val">22px</span>
                 </div>
             </div>
@@ -533,15 +533,15 @@
                 <div class="option-group">
                     <label>Voorleessnelheid</label>
                     <div class="range-container">
-                        <input type="range" class="sync-speed" min="0.1" max="2" step="0.05" value="1.0">
+                        <input type="range" class="sync-speed" min="0.1" max="1.5" step="0.05" value="1.0">
                         <span class="range-val speed-val">1.00x</span>
                     </div>
                 </div>
                 <div class="option-group">
                     <label>Voorleesstem</label>
                     <select class="sync-voice">
+                        <option value="vl" selected>Vlaams</option>
                         <option value="nl">Nederlands</option>
-                        <option value="vl">Vlaams</option>
                         <option value="en">Engels (English)</option>
                         <option value="fr">Frans (Français)</option>
                         <option value="none">Geen (Stil lezen)</option>
@@ -550,7 +550,7 @@
                 <div class="option-group">
                     <label>Grootte lettertype</label>
                     <div class="range-container">
-                        <input type="range" class="sync-font" min="16" max="50" step="1" value="22">
+                        <input type="range" class="sync-font" min="16" max="80" step="1" value="22">
                         <span class="range-val font-val">22px</span>
                     </div>
                 </div>
@@ -1111,8 +1111,8 @@
                 return;
             }
 
-            // STRATEGIE: OP ANDROID OF BIJ LAGE SNELHEID (< 0.6)
-            if (isAndroid || userSpeed < 0.6) {
+            // STRATEGIE: OP ANDROID OF BIJ SNELLHEID LAGER DAN 0.50 (PAUZES TUSSEN WOORDEN)
+            if (isAndroid || userSpeed < 0.50) {
                 function readNextWordCustom() {
                     if (currentReadingIndex >= wordsArray.length || isPaused) {
                         if (currentReadingIndex >= wordsArray.length) stopReading();
@@ -1142,18 +1142,16 @@
                             highlightWordAndSync(currentReadingIndex);
                         }
                         
-                        // DE VERBETERDE PAUZE-FORMULE:
                         let wordPause = 0;
-                        if (userSpeed < 0.6) {
-                            // Een vloeiende, progressieve opbouw in plaats van een abrupte sprong.
-                            // Bij 0.55 en 0.5 is de pauze nu heel subtiel en kort, en wordt pas echt lang bij 0.3 t/m 0.1
-                            wordPause += Math.pow((0.6 - userSpeed), 1.5) * 2200;
+                        if (userSpeed < 0.50) {
+                            // Berekening op basis van de afstand tot het kantelpunt 0,50
+                            wordPause += Math.pow((0.50 - userSpeed), 2.2) * 5000;
                         } else {
                             wordPause += (1.0 - Math.min(userSpeed, 1.0)) * 120;
                         }
 
                         if (/[.,!?]/.test(currentWordText)) {
-                            wordPause += (userSpeed < 0.6 ? 450 : 400); 
+                            wordPause += 400; 
                         }
 
                         customPlaybackTimeout = setTimeout(() => {
@@ -1167,7 +1165,7 @@
                 readNextWordCustom();
 
             } else {
-                // STRATEGIE: DESKTOP / IOS VLOEIEND MET VERVROEGD LEZEN
+                // STRATEGIE: DESKTOP / IOS VLOEIEND (VANAF 0,50 EN HOGER)
                 const textToRead = wordsArray.slice(startIndex).map(w => w.textContent).join(' ');
                 utterance = new SpeechSynthesisUtterance(textToRead);
 
